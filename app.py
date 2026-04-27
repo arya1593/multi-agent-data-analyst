@@ -1,17 +1,16 @@
-"""Streamlit chat UI: two-column layout with chat history, sidebar examples, and Plotly charts."""
+"""Streamlit chat UI with CSV uploader, welcome screen, and two-column results."""
 import os
 import requests
 import streamlit as st
 import plotly.graph_objects as go
 
-# Streamlit Cloud → set API_URL in app secrets; local → set env var or default to localhost
 try:
     _base = st.secrets["API_URL"]
 except Exception:
     _base = os.environ.get("API_URL", "http://localhost:8000")
-API_URL = _base.rstrip("/") + "/analyze"
+API_BASE = _base.rstrip("/")
 
-EXAMPLE_QUESTIONS = [
+EXAMPLES = [
     "Which city sold the most pepperoni pizzas last month?",
     "Show me weekly revenue for the last 3 months",
     "What is the best-selling pizza type overall?",
@@ -20,73 +19,144 @@ EXAMPLE_QUESTIONS = [
 ]
 
 st.set_page_config(page_title="Data Analyst Agent", layout="wide")
-st.title("Data Analyst Agent")
-st.markdown("<p style='color:grey'>Ask a question about your pizza sales database</p>", unsafe_allow_html=True)
 
-if "history" not in st.session_state:
-    st.session_state.history = []
-if "pending_question" not in st.session_state:
-    st.session_state.pending_question = ""
+if "history"          not in st.session_state: st.session_state.history          = []
+if "pending_question" not in st.session_state: st.session_state.pending_question = ""
+if "loaded_tables"    not in st.session_state: st.session_state.loaded_tables    = None
+
+
+def fetch_tables() -> str:
+    # Pulls the current database schema from the API
+    try:
+        r = requests.get(f"{API_BASE}/tables", timeout=10)
+        return r.json().get("schema", "")
+    except Exception:
+        return ""
 
 
 def run_question(question: str):
-    # Calls the FastAPI backend and appends the Q&A pair to session history
-    with st.spinner("Agents working…"):
+    # Sends question to API and stores result in session history
+    with st.spinner("Agents working — usually 5 to 15 seconds..."):
         try:
-            resp = requests.post(API_URL, json={"question": question}, timeout=120)
-            resp.raise_for_status()
-            data = resp.json()
+            r = requests.post(f"{API_BASE}/analyze", json={"question": question}, timeout=120)
+            r.raise_for_status()
+            data = r.json()
         except Exception as exc:
-            data = {"answer": f"Error contacting API: {exc}", "sql": "", "chart_spec": {}, "stats": {}, "error": str(exc)}
-
+            data = {"answer": f"Could not reach the server. Please wait 30 seconds and try again.\n\nDetail: {exc}",
+                    "sql": "", "chart_spec": {}, "stats": {}, "error": str(exc)}
     st.session_state.history.append({"question": question, "data": data})
 
 
-# Sidebar: example question buttons
+def render_result(d: dict):
+    # Renders a single answer: written answer + chart side by side
+    col_left, col_right = st.columns([55, 45])
+    with col_left:
+        st.markdown(
+            f"<div style='background:#f0f2f6;padding:1rem 1.2rem;border-radius:10px;"
+            f"font-size:1rem;line-height:1.6'>{d.get('answer','')}</div>",
+            unsafe_allow_html=True,
+        )
+        if d.get("sql"):
+            with st.expander("See the SQL query that was used"):
+                st.code(d["sql"], language="sql")
+        if d.get("stats"):
+            with st.expander("See statistical findings"):
+                st.json(d["stats"])
+    with col_right:
+        spec = d.get("chart_spec", {})
+        if spec:
+            try:
+                st.plotly_chart(go.Figure(spec), use_container_width=True)
+            except Exception:
+                st.caption("Chart could not be rendered for this result.")
+        else:
+            st.markdown(
+                "<p style='color:#aaa;margin-top:60px;text-align:center'>"
+                "No chart for this question</p>", unsafe_allow_html=True
+            )
+
+
+# ── SIDEBAR ────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.header("Example Questions")
-    for q in EXAMPLE_QUESTIONS:
+    st.title("Data Analyst Agent")
+    st.caption("Ask questions about any data — no technical skills needed.")
+    st.divider()
+
+    # CSV Upload
+    st.subheader("1. Load your data")
+    st.markdown(
+        "Upload any **CSV file** (a spreadsheet saved as .csv) and "
+        "the app will let you ask questions about it instantly."
+    )
+    uploaded = st.file_uploader("Choose a CSV file", type=["csv"], label_visibility="collapsed")
+    if uploaded:
+        with st.spinner(f"Loading {uploaded.name}..."):
+            try:
+                r = requests.post(
+                    f"{API_BASE}/upload",
+                    files={"file": (uploaded.name, uploaded.getvalue(), "text/csv")},
+                    timeout=30,
+                )
+                r.raise_for_status()
+                info = r.json()
+                st.success(
+                    f"Loaded **{info['table']}**  \n"
+                    f"{info['rows']} rows · {len(info['columns'])} columns  \n"
+                    f"Columns: {', '.join(info['columns'])}"
+                )
+                st.session_state.loaded_tables = fetch_tables()
+            except Exception as exc:
+                st.error(f"Upload failed: {exc}")
+
+    st.markdown("*Or use the built-in demo data (pizza sales across 8 US cities).*")
+    st.divider()
+
+    # Example questions
+    st.subheader("2. Try an example")
+    for q in EXAMPLES:
         if st.button(q, use_container_width=True):
             st.session_state.pending_question = q
 
-# Display previous chat history
+    # Show what's in the database
+    st.divider()
+    with st.expander("What data is loaded?"):
+        schema = st.session_state.loaded_tables or fetch_tables()
+        if schema:
+            for line in schema.strip().split("\n"):
+                st.markdown(f"- `{line}`")
+        else:
+            st.caption("Could not reach the server yet.")
+
+
+# ── MAIN AREA ───────────────────────────────────────────────────────────────
+st.markdown("## Ask a question about your data")
+st.caption("Type in plain English — no SQL or coding knowledge needed.")
+
+# Welcome card shown only before the first question
+if not st.session_state.history:
+    st.info(
+        "**How to get started**\n\n"
+        "1. **(Optional)** Upload your own CSV file in the left sidebar — or skip this and use the built-in pizza sales demo data.\n\n"
+        "2. **Ask a question** — type it in the box below, or click one of the example buttons on the left.\n\n"
+        "3. **Read your answer** — you'll get a plain-English summary and a chart on the right."
+    )
+
+# Chat history
 for item in st.session_state.history:
     with st.chat_message("user"):
         st.write(item["question"])
     with st.chat_message("assistant"):
-        d = item["data"]
-        col_left, col_right = st.columns([55, 45])
-        with col_left:
-            st.markdown(
-                f"<div style='background:#f0f2f6;padding:1rem;border-radius:8px'>{d.get('answer','')}</div>",
-                unsafe_allow_html=True,
-            )
-            if d.get("sql"):
-                with st.expander("SQL generated"):
-                    st.code(d["sql"], language="sql")
-            if d.get("stats"):
-                with st.expander("Statistical findings"):
-                    st.json(d["stats"])
-        with col_right:
-            spec = d.get("chart_spec", {})
-            if spec:
-                try:
-                    fig = go.Figure(spec)
-                    st.plotly_chart(fig, use_container_width=True)
-                except Exception:
-                    st.caption("Could not render chart.")
-            else:
-                st.markdown("<p style='color:grey'>No chart for this query</p>", unsafe_allow_html=True)
+        render_result(item["data"])
 
-# Handle pending question from sidebar buttons
+# Sidebar button fires a question
 if st.session_state.pending_question:
     q = st.session_state.pending_question
     st.session_state.pending_question = ""
     run_question(q)
     st.rerun()
 
-# Chat input at the bottom
-user_input = st.chat_input("Ask a question about your data…")
+# Chat input
+user_input = st.chat_input("Type your question here, e.g. 'Which city had the highest revenue?'")
 if user_input:
     run_question(user_input)
     st.rerun()
