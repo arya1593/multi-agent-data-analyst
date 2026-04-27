@@ -14,11 +14,11 @@
 
 ## What it does
 
-Upload any CSV file (or use the built-in pizza sales demo) and ask questions like:
+Upload any CSV file (or use the built-in global e-commerce demo) and ask questions like:
 
-- *"Which city sold the most pepperoni pizzas last month?"*
-- *"Show me weekly revenue trends for the last 3 months"*
-- *"Are there any cities with unusually low sales?"*
+- *"Which city has the highest total revenue?"*
+- *"Show me monthly revenue trends for the last 6 months"*
+- *"Which product category generates the most sales?"*
 
 The platform automatically routes your question through a pipeline of four AI agents, executes the right SQL query against your data, detects statistical patterns, and summarises everything in plain English alongside an interactive chart.
 
@@ -158,27 +158,31 @@ Open **http://localhost:8501** in your browser.
 
 ## Demo dataset
 
-The built-in demo contains **500 pizza orders** across 8 US cities over 6 months.
+The built-in demo contains **600 e-commerce orders** across 15 cities in 3 global regions over 6 months.
 
 | Table | Columns |
 |---|---|
-| `orders` | id, city, pizza_type, quantity, sale_date, revenue |
-| `locations` | city, region, manager_name |
-| `products` | pizza_type, category, base_price |
+| `orders` | id, city, product_name, category, customer_segment, quantity, order_date, revenue |
+| `products` | product_name, category, base_price |
+| `regions` | city, country, region |
 
-**Cities:** Chicago · New York · Houston · Phoenix · Dallas · Seattle · Miami · Denver  
-**Pizza types:** pepperoni · margherita · bbq_chicken · veggie · hawaiian
+**Regions:** North America · Europe · Asia Pacific  
+**Cities:** New York · Los Angeles · Chicago · Toronto · Houston · London · Paris · Berlin · Amsterdam · Madrid · Tokyo · Singapore · Sydney · Mumbai · Seoul  
+**Categories:** Technology · Furniture · Office Supplies  
+**Customer segments:** Consumer · Corporate · Home Office
 
 ### Example questions to try
 
 ```
-Which city sold the most pepperoni pizzas last month?
-Show me weekly revenue for the last 3 months
-What is the best-selling pizza type overall?
-Compare revenue by region
+Which city has the highest total revenue?
+Show me monthly revenue trend for the last 6 months
+What is the best-selling product overall?
+Compare revenue across regions
+Which product category generates the most sales?
+Which customer segment spends the most?
 Are there any cities with unusually low sales?
-What's the average order value per pizza category?
-Which manager's region has the highest revenue?
+What is the average order value for Corporate customers?
+Which country has the most orders?
 ```
 
 ---

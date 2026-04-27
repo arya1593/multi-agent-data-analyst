@@ -11,11 +11,12 @@ except Exception:
 API_BASE = _base.rstrip("/")
 
 EXAMPLES = [
-    "Which city sold the most pepperoni pizzas last month?",
-    "Show me weekly revenue for the last 3 months",
-    "What is the best-selling pizza type overall?",
-    "Compare revenue by region",
-    "Are there any cities with unusually low sales?",
+    "Which city has the highest total revenue?",
+    "Show me monthly revenue trend for the last 6 months",
+    "What is the best-selling product overall?",
+    "Compare revenue across regions",
+    "Which product category generates the most sales?",
+    "Which customer segment spends the most?",
 ]
 
 st.set_page_config(page_title="Data Analyst Agent", layout="wide")
@@ -32,11 +33,11 @@ def welcome_popup():
         "This app lets you ask questions about data **in plain English** — no coding needed.\n\n"
         "---\n\n"
         "**To get started:**\n\n"
-        "1. The app already has **pizza sales demo data** loaded — you can start asking right away.\n"
+        "1. The app already has **global e-commerce demo data** loaded — you can start asking right away.\n"
         "2. Or upload your **own CSV file** in the left sidebar under *Load your data*.\n\n"
         "---\n\n"
         "**Try this example question:**\n\n"
-        "> *Which city sold the most pepperoni pizzas last month?*\n\n"
+        "> *Which city has the highest total revenue?*\n\n"
         "Type it in the box at the bottom of the screen, or click any button on the left.\n\n"
         "---\n\n"
         "You will get a plain-English **answer**, a **chart**, and optionally the SQL query used."
@@ -131,7 +132,7 @@ with st.sidebar:
             except Exception as exc:
                 st.error(f"Upload failed: {exc}")
 
-    st.markdown("*Or use the built-in demo data (pizza sales across 8 US cities).*")
+    st.markdown("*Or use the built-in demo data (global e-commerce sales across 15 cities).*")
     st.divider()
 
     # Example questions
@@ -167,7 +168,7 @@ st.caption("Type in plain English — no SQL or coding knowledge needed.")
 if not st.session_state.history:
     st.info(
         "**How to get started**\n\n"
-        "1. **(Optional)** Upload your own CSV file in the left sidebar — or skip this and use the built-in pizza sales demo data.\n\n"
+        "1. **(Optional)** Upload your own CSV file in the left sidebar — or skip this and use the built-in e-commerce demo data.\n\n"
         "2. **Ask a question** — type it in the box below, or click one of the example buttons on the left.\n\n"
         "3. **Read your answer** — you'll get a plain-English summary and a chart on the right."
     )
