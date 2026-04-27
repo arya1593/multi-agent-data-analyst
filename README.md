@@ -247,6 +247,18 @@ python generate_qr.py https://your-streamlit-app.streamlit.app
 
 ---
 
+## Screenshots
+
+<p align="center">
+  <img src="screenshot1.png" alt="Demo screenshot 1" width="100%"/>
+</p>
+
+<p align="center">
+  <img src="screenshot2.png" alt="Demo screenshot 2" width="100%"/>
+</p>
+
+---
+
 ## Built by
 
 **Arya Patel**
