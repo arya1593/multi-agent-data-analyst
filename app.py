@@ -1,4 +1,4 @@
-"""Streamlit chat UI with CSV uploader, welcome screen, and two-column results."""
+"""Streamlit chat UI with welcome popup, CSV uploader, and two-column results."""
 import os
 import requests
 import streamlit as st
@@ -23,10 +23,30 @@ st.set_page_config(page_title="Data Analyst Agent", layout="wide")
 if "history"          not in st.session_state: st.session_state.history          = []
 if "pending_question" not in st.session_state: st.session_state.pending_question = ""
 if "loaded_tables"    not in st.session_state: st.session_state.loaded_tables    = None
+if "show_welcome"     not in st.session_state: st.session_state.show_welcome     = True
+
+
+@st.dialog("Welcome to Data Analyst Agent!")
+def welcome_popup():
+    st.markdown(
+        "This app lets you ask questions about data **in plain English** — no coding needed.\n\n"
+        "---\n\n"
+        "**To get started:**\n\n"
+        "1. The app already has **pizza sales demo data** loaded — you can start asking right away.\n"
+        "2. Or upload your **own CSV file** in the left sidebar under *Load your data*.\n\n"
+        "---\n\n"
+        "**Try this example question:**\n\n"
+        "> *Which city sold the most pepperoni pizzas last month?*\n\n"
+        "Type it in the box at the bottom of the screen, or click any button on the left.\n\n"
+        "---\n\n"
+        "You will get a plain-English **answer**, a **chart**, and optionally the SQL query used."
+    )
+    if st.button("Got it, let's go!", use_container_width=True, type="primary"):
+        st.session_state.show_welcome = False
+        st.rerun()
 
 
 def fetch_tables() -> str:
-    # Pulls the current database schema from the API
     try:
         r = requests.get(f"{API_BASE}/tables", timeout=10)
         return r.json().get("schema", "")
@@ -35,7 +55,6 @@ def fetch_tables() -> str:
 
 
 def run_question(question: str):
-    # Sends question to API and stores result in session history
     with st.spinner("Agents working — usually 5 to 15 seconds..."):
         try:
             r = requests.post(f"{API_BASE}/analyze", json={"question": question}, timeout=120)
@@ -48,7 +67,6 @@ def run_question(question: str):
 
 
 def render_result(d: dict):
-    # Renders a single answer: written answer + chart side by side
     col_left, col_right = st.columns([55, 45])
     with col_left:
         st.markdown(
@@ -74,6 +92,11 @@ def render_result(d: dict):
                 "<p style='color:#aaa;margin-top:60px;text-align:center'>"
                 "No chart for this question</p>", unsafe_allow_html=True
             )
+
+
+# Show welcome popup on first visit
+if st.session_state.show_welcome:
+    welcome_popup()
 
 
 # ── SIDEBAR ────────────────────────────────────────────────────────────────
@@ -126,6 +149,14 @@ with st.sidebar:
                 st.markdown(f"- `{line}`")
         else:
             st.caption("Could not reach the server yet.")
+
+    # Name credit
+    st.divider()
+    st.markdown(
+        "<div style='text-align:center;color:#888;font-size:0.82rem;padding-bottom:0.5rem'>"
+        "Built by <strong>Arya Patel</strong></div>",
+        unsafe_allow_html=True,
+    )
 
 
 # ── MAIN AREA ───────────────────────────────────────────────────────────────
