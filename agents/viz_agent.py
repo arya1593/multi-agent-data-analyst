@@ -1,4 +1,4 @@
-"""Visualization agent: converts SQL results into a Plotly figure dict via Sonnet."""
+"""Visualization agent: converts SQL results into a Plotly figure dict via Groq."""
 import json
 import os
 import re
@@ -19,12 +19,11 @@ _SYSTEM = (
 
 
 def _client():
-    import anthropic
-    return anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    from groq import Groq
+    return Groq(api_key=os.environ["GROQ_API_KEY"])
 
 
 def _fallback_chart(df) -> dict:
-    # Builds a simple bar or line chart when the LLM returns unparseable JSON
     import plotly.express as px
     date_cols = [c for c in df.columns if "date" in c.lower() or "week" in c.lower()]
     num_cols = df.select_dtypes("number").columns.tolist()
@@ -44,7 +43,6 @@ def _fallback_chart(df) -> dict:
 
 
 def viz_node(state: dict) -> dict:
-    # Returns a Plotly figure dict; falls back to a simple chart if LLM output is invalid
     import pandas as pd
     results = state.get("sql_results", [])
     if not results:
@@ -62,13 +60,15 @@ def viz_node(state: dict) -> dict:
     )
 
     try:
-        resp = _client().messages.create(
-            model="claude-sonnet-4-6",
+        resp = _client().chat.completions.create(
+            model="llama-3.3-70b-versatile",
             max_tokens=2048,
-            system=_SYSTEM,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": _SYSTEM},
+                {"role": "user", "content": prompt},
+            ],
         )
-        raw = resp.content[0].text.strip()
+        raw = resp.choices[0].message.content.strip()
         raw = re.sub(r"^```[a-z]*\n?", "", raw)
         raw = re.sub(r"\n?```$", "", raw)
         chart_spec = json.loads(raw)

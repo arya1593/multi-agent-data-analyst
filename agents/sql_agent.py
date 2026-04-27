@@ -1,4 +1,4 @@
-"""NL→SQL agent with up to 3 self-correction attempts using Sonnet."""
+"""NL→SQL agent with up to 3 self-correction attempts using Groq."""
 import os
 import re
 from dotenv import load_dotenv
@@ -12,9 +12,8 @@ _SYSTEM = (
 
 
 def _client():
-    # Lazy-loads Anthropic client after dotenv has run
-    import anthropic
-    return anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    from groq import Groq
+    return Groq(api_key=os.environ["GROQ_API_KEY"])
 
 
 def _engine():
@@ -23,23 +22,13 @@ def _engine():
 
 
 def _strip_fences(text: str) -> str:
-    # Removes ```sql ... ``` or ``` ... ``` wrappers from LLM output
     text = text.strip()
     text = re.sub(r"^```[a-z]*\n?", "", text)
     text = re.sub(r"\n?```$", "", text)
     return text.strip()
 
 
-def _build_messages(query: str, schema: str, prev_sql: str = "", error: str = "") -> list:
-    # Constructs the messages list, appending correction context when retrying
-    content = f"Schema:\n{schema}\n\nQuestion: {query}"
-    if prev_sql and error:
-        content += f"\n\nPrevious SQL (failed):\n{prev_sql}\nError: {error}\n\nFix the SQL."
-    return [{"role": "user", "content": content}]
-
-
 def sql_node(state: dict) -> dict:
-    # Tries up to 3 times to generate and execute valid SQL, returning rows capped at 200
     from tools.db_tools import get_schema, execute_sql
     engine = _engine()
     schema = get_schema(engine)
@@ -48,14 +37,19 @@ def sql_node(state: dict) -> dict:
 
     for _ in range(3):
         try:
-            msgs = _build_messages(query, schema, sql, error)
-            resp = _client().messages.create(
-                model="claude-sonnet-4-6",
+            content = f"Schema:\n{schema}\n\nQuestion: {query}"
+            if sql and error:
+                content += f"\n\nPrevious SQL (failed):\n{sql}\nError: {error}\n\nFix the SQL."
+
+            resp = _client().chat.completions.create(
+                model="llama-3.3-70b-versatile",
                 max_tokens=512,
-                system=_SYSTEM,
-                messages=msgs,
+                messages=[
+                    {"role": "system", "content": _SYSTEM},
+                    {"role": "user", "content": content},
+                ],
             )
-            sql = _strip_fences(resp.content[0].text)
+            sql = _strip_fences(resp.choices[0].message.content)
             results = execute_sql(engine, sql)
 
             if results and "error" in results[0]:

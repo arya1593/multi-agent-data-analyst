@@ -15,12 +15,11 @@ _SYSTEM = (
 
 
 def _client():
-    import anthropic
-    return anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    from groq import Groq
+    return Groq(api_key=os.environ["GROQ_API_KEY"])
 
 
 def synthesizer_node(state: dict) -> dict:
-    # Builds a grounded natural-language answer from query, SQL, results, and stats
     query = state.get("query", "")
     sql = state.get("sql", "")
     results = state.get("sql_results", [])
@@ -39,13 +38,15 @@ def synthesizer_node(state: dict) -> dict:
     prompt += "Write your answer now."
 
     try:
-        resp = _client().messages.create(
-            model="claude-sonnet-4-6",
+        resp = _client().chat.completions.create(
+            model="llama-3.3-70b-versatile",
             max_tokens=512,
-            system=_SYSTEM,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": _SYSTEM},
+                {"role": "user", "content": prompt},
+            ],
         )
-        answer = resp.content[0].text.strip()
+        answer = resp.choices[0].message.content.strip()
     except Exception as exc:
         answer = f"Could not generate answer: {exc}"
 
