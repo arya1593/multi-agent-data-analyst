@@ -10,6 +10,12 @@
 
 **Live demo →** [arya1593-multi-agent-data-analyst.streamlit.app](https://arya1593-multi-agent-data-analyst.streamlit.app/)
 
+<p align="center">
+  <img src="demo_qr.png" width="180" alt="Scan to open the live demo"/>
+  <br/>
+  <em>Scan to open the live demo on your phone</em>
+</p>
+
 ---
 
 ## What it does

@@ -25,5 +25,4 @@ Thumbs.db
 # Streamlit secrets (real one, not the example)
 .streamlit/secrets.toml
 
-# Generated output
-demo_qr.png
+# Generated output (demo_qr.png is intentionally tracked for README)
