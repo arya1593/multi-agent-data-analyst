@@ -6,7 +6,7 @@
 [![LangGraph](https://img.shields.io/badge/LangGraph-0.2%2B-green)](https://github.com/langchain-ai/langgraph)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111%2B-009688?logo=fastapi)](https://fastapi.tiangolo.com)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.36%2B-FF4B4B?logo=streamlit)](https://streamlit.io)
-[![Anthropic](https://img.shields.io/badge/Anthropic-Claude%20Sonnet%20%2F%20Haiku-blueviolet)](https://anthropic.com)
+[![Groq](https://img.shields.io/badge/Groq-Llama%203-orange)](https://groq.com)
 
 **Live demo →** [arya1593-multi-agent-data-analyst.streamlit.app](https://arya1593-multi-agent-data-analyst.streamlit.app/)
 
@@ -61,11 +61,11 @@ Answer  +  Plotly Chart  +  Stats JSON
 
 | Agent | Model | Responsibility |
 |---|---|---|
-| **Router** | Claude Haiku | Reads the schema, classifies intent (`sql` / `viz` / `stats` / `hybrid`) |
-| **SQL Agent** | Claude Sonnet | Translates the question to SQLite SQL; self-corrects up to 3 times on error |
-| **Viz Agent** | Claude Sonnet | Chooses chart type and builds a Plotly JSON spec from the SQL results |
+| **Router** | Llama 3.1 8B Instant | Reads the schema, classifies intent (`sql` / `viz` / `stats` / `hybrid`) |
+| **SQL Agent** | Llama 3.3 70B Versatile | Translates the question to SQLite SQL; self-corrects up to 3 times on error |
+| **Viz Agent** | Llama 3.3 70B Versatile | Chooses chart type and builds a Plotly JSON spec from the SQL results |
 | **Stats Agent** | *(no LLM)* | Runs scipy linear regression + z-score outlier detection on the raw numbers |
-| **Synthesizer** | Claude Sonnet | Combines all signals into a 2–4 sentence answer citing specific numbers |
+| **Synthesizer** | Llama 3.3 70B Versatile | Combines all signals into a 2–4 sentence answer citing specific numbers |
 
 ---
 
@@ -74,7 +74,7 @@ Answer  +  Plotly Chart  +  Stats JSON
 | Layer | Technology |
 |---|---|
 | Orchestration | [LangGraph](https://github.com/langchain-ai/langgraph) StateGraph with parallel edges |
-| AI models | Anthropic Claude Sonnet 4.6 (SQL, Viz, Synth) · Haiku 4.5 (Router) |
+| AI models | Groq · Llama 3.3 70B Versatile (SQL, Viz, Synth) · Llama 3.1 8B Instant (Router) |
 | API gateway | FastAPI + Uvicorn |
 | Frontend | Streamlit (wide layout, `st.dialog` welcome popup) |
 | Database | SQLite via SQLAlchemy (swappable via `DATABASE_URL`) |
@@ -115,7 +115,7 @@ multi_agent_platform/
 ### Prerequisites
 
 - Python 3.11+
-- An [Anthropic API key](https://console.anthropic.com/)
+- A free [Groq API key](https://console.groq.com/) (no credit card required)
 
 ### Steps
 
@@ -129,7 +129,7 @@ pip install -r requirements.txt
 
 # 3. Set your API key
 cp .env.example .env
-# Edit .env and paste your ANTHROPIC_API_KEY
+# Edit .env and paste your GROQ_API_KEY
 
 # 4. Seed the demo database (pizza sales, 500 rows, 8 cities)
 python seed_db.py
@@ -192,7 +192,7 @@ Which manager's region has the highest revenue?
 3. Render will read `render.yaml` automatically:
    - **Build command:** `pip install -r requirements.txt && python seed_db.py`
    - **Start command:** `uvicorn api:app --host 0.0.0.0 --port $PORT`
-4. Add the `ANTHROPIC_API_KEY` environment variable in the Render dashboard.
+4. Add the `GROQ_API_KEY` environment variable in the Render dashboard (free key from [console.groq.com](https://console.groq.com)).
 
 ### Frontend — Streamlit Community Cloud
 
@@ -217,7 +217,7 @@ python generate_qr.py https://your-streamlit-app.streamlit.app
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `ANTHROPIC_API_KEY` | Yes | — | Your Anthropic API key |
+| `GROQ_API_KEY` | Yes | — | Your free Groq API key (get one at console.groq.com) |
 | `DATABASE_URL` | No | `sqlite:///./pizza_sales.db` | SQLAlchemy connection string |
 | `API_URL` | No (Streamlit) | `http://localhost:8000` | URL of the FastAPI backend |
 
@@ -228,10 +228,10 @@ python generate_qr.py https://your-streamlit-app.streamlit.app
 1. User types a question in the chat box.
 2. Streamlit POSTs `{"question": "..."}` to `/analyze`.
 3. FastAPI calls `run_query()` which invokes the LangGraph graph.
-4. **Router** (Haiku): reads the database schema + question, returns intent JSON.
-5. **SQL Agent** (Sonnet): generates SQLite SQL, executes it, self-corrects on failure.
-6. **Viz Agent** (Sonnet) and **Stats Agent** (scipy) run in parallel on the results.
-7. **Synthesizer** (Sonnet): merges the SQL rows, chart spec, and stats into a 2–4 sentence answer.
+4. **Router** (Llama 3.1 8B): reads the database schema + question, returns intent JSON.
+5. **SQL Agent** (Llama 3.3 70B): generates SQLite SQL, executes it, self-corrects on failure.
+6. **Viz Agent** (Llama 3.3 70B) and **Stats Agent** (scipy) run in parallel on the results.
+7. **Synthesizer** (Llama 3.3 70B): merges the SQL rows, chart spec, and stats into a 2–4 sentence answer.
 8. FastAPI returns `{answer, sql, chart_spec, stats, error}`.
 9. Streamlit renders the answer card (left) and Plotly chart (right).
 
