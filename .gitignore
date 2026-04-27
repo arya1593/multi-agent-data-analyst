@@ -1,0 +1,29 @@
+# secrets — never commit these
+.env
+*.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit secrets (real one, not the example)
+.streamlit/secrets.toml
+
+# Generated output
+demo_qr.png
